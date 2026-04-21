@@ -1,0 +1,20 @@
+{
+  "domain": "istore_heatpump",
+  "name": "iStore Heat Pump",
+  "version": "1.0.0",
+  "documentation": "https://example.com",
+  "requirements": [
+    "cryptography>=41.0.0"
+  ],
+  "codeowners": [
+    "@yourname"
+  ],
+  "iot_class": "cloud_polling",
+  "config_flow": true,
+  "integration_type": "hub",
+  "platforms": [
+    "sensor",
+    "switch",
+    "binary_sensor"
+  ]
+}
