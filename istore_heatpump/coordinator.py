@@ -19,6 +19,8 @@ class iStoreCoordinator(DataUpdateCoordinator):
         """Fetch latest data from iStore API."""
         try:
             data = await self.api.get_measurements()
+            if data is None or "data" not in data:
+                raise Exception(f"Invalid API response: {data}")
             return data["data"]  # the dict keyed by mdm_id
         except Exception as e:
             _LOGGER.error("iStore update failed: %s", e)

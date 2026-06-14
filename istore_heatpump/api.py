@@ -291,14 +291,27 @@ class iStoreApi:
                     async with session.post(url, headers=headers, data=payload) as retry:
                         if retry.status != 200:
                             _LOGGER.error("iStore measurement API returned %s after re-auth", retry.status)
-                            return None
+                            return {"code": retry.status, "message": "Failed after re-auth", "data": {}}
                         return await retry.json(content_type=None)
 
                 if resp.status != 200:
                     _LOGGER.error("iStore measurement API returned %s", resp.status)
-                    return None
+                    return {"code": resp.status, "message": "API error", "data": {}}
 
-                return await resp.json(content_type=None)
+                data = await resp.json(content_type=None)
+                if data.get("code") == 30000:
+                    _LOGGER.warning("iStore session expired (code 30000) — re-authenticating")
+                    await self.re_authenticate()
+                    headers["Authorization"] = f"Bearer {self.access_token}"
+                    async with session.post(url, headers=headers, data=payload) as retry:
+                        if retry.status != 200:
+                            _LOGGER.error("iStore measurement API returned %s after re-auth", retry.status)
+                            return {"code": retry.status, "message": "Failed after re-auth", "data": {}}
+                        return await retry.json(content_type=None)
+
+                if data.get("code") != 10000:
+                    _LOGGER.warning("iStore measurement API returned business code %s: %s", data.get("code"), data.get("msg"))
+                return data
 
     # -------------------------------------------------------------------------
     # Control (On / Off / Booster)
@@ -333,7 +346,16 @@ class iStoreApi:
                     headers["Authorization"] = f"Bearer {self.access_token}"
                     async with session.post(url, headers=headers, json=payload) as retry:
                         return await retry.json(content_type=None)
-                return await resp.json(content_type=None)
+
+                data = await resp.json(content_type=None)
+                if data.get("code") == 30000:
+                    _LOGGER.warning("iStore session expired (code 30000) on control — re-authenticating")
+                    await self.re_authenticate()
+                    headers["Authorization"] = f"Bearer {self.access_token}"
+                    async with session.post(url, headers=headers, json=payload) as retry:
+                        return await retry.json(content_type=None)
+
+                return data
 
     # -------------------------------------------------------------------------
     # Timer control
@@ -360,4 +382,13 @@ class iStoreApi:
                     headers["Authorization"] = f"Bearer {self.access_token}"
                     async with session.post(url, headers=headers, json=payload) as retry:
                         return await retry.json(content_type=None)
-                return await resp.json(content_type=None)
+
+                data = await resp.json(content_type=None)
+                if data.get("code") == 30000:
+                    _LOGGER.warning("iStore session expired (code 30000) on timer control — re-authenticating")
+                    await self.re_authenticate()
+                    headers["Authorization"] = f"Bearer {self.access_token}"
+                    async with session.post(url, headers=headers, json=payload) as retry:
+                        return await retry.json(content_type=None)
+
+                return data
